@@ -8,39 +8,40 @@ An advanced, multi-turn Conversational Retrieval-Augmented Generation (RAG) assi
 
 ```mermaid
 flowchart TD
-    User([👤 User]) -->|Uploads PDFs & Enters Session ID| UI[Streamlit UI]
-    
-    subgraph Document_Processing [Dynamic PDF Ingestion Pipeline]
-        Upload[st.file_uploader: Multiple PDFs] --> TempFiles[Tempfile Handler]
-        TempFiles --> PDFLoader[PyPDFLoader]
-        PDFLoader --> Splitter[RecursiveCharacterTextSplitter\nchunk_size=5000, overlap=500]
-        Splitter --> Embeddings[OllamaEmbeddings\nmodel: nomic-embed-text]
-        Embeddings --> ChromaDB[(Chroma Vector Database\nIn-Memory Store)]
+    User(["👤 User"]) -->|Uploads PDFs & Enters Session ID| UI["Streamlit UI"]
+
+    subgraph DocProcessing["Dynamic PDF Ingestion Pipeline"]
+        Upload["st.file_uploader: Multiple PDFs"] --> TempFiles["Tempfile Handler"]
+        TempFiles --> PDFLoader["PyPDFLoader"]
+        PDFLoader --> Splitter["RecursiveCharacterTextSplitter<br/>chunk_size=5000, overlap=500"]
+        Splitter --> Embeddings["OllamaEmbeddings<br/>model: nomic-embed-text"]
+        Embeddings --> ChromaDB[("Chroma Vector Database<br/>In-Memory Store")]
     end
 
-    subgraph Conversational_RAG [Two-Stage Conversational Retrieval Pipeline]
-        UserQuery[User Question] --> SessionStore[(Session History Store\nst.session_state.store[session_id])]
-        
-        SessionStore --> HistoryAwareRetriever[History-Aware Retriever\nRephrases follow-up questions to standalone query]
+    subgraph ConvRAG["Two-Stage Conversational Retrieval Pipeline"]
+        UserQuery["User Question"] --> SessionStore[("Session History Store<br/>st.session_state.store by session_id")]
+
+        SessionStore --> HistoryAwareRetriever["History-Aware Retriever<br/>Rephrases follow-up questions to standalone query"]
         UserQuery --> HistoryAwareRetriever
         ChromaDB -.->|Indexed Chunks| HistoryAwareRetriever
-        
-        HistoryAwareRetriever --> Context[Retrieved Document Context]
-        Context --> StuffChain[create_stuff_documents_chain\nSystem Prompt + Context + Chat History]
-        
-        StuffChain --> GroqLLM[ChatGroq\nmodel: openai/gpt-oss-20b]
-        GroqLLM --> Answer[Synthesized Grounded Answer]
+
+        HistoryAwareRetriever --> Context["Retrieved Document Context"]
+        Context --> StuffChain["create_stuff_documents_chain<br/>System Prompt + Context + Chat History"]
+
+        StuffChain --> GroqLLM["ChatGroq<br/>model: openai/gpt-oss-20b"]
+        GroqLLM --> Answer["Synthesized Grounded Answer"]
     end
 
-    subgraph State_Management [RunnableWithMessageHistory]
-        Runnable[RunnableWithMessageHistory Wrapper]
+    subgraph StateMgmt["State Management"]
+        Runnable["RunnableWithMessageHistory Wrapper"]
         Runnable -->|Appends Q&A to Session History| SessionStore
     end
 
+    UI --> Upload
+    UI --> UserQuery
     Answer --> UI
     SessionStore -.->|Renders Full History| UI
 ```
-
 ---
 
 ## 📌 Detailed Features & Concepts Discussed
